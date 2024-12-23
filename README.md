@@ -1,5 +1,4 @@
-
- as_digital
+as_digital
 Esse Addon tem como Objetivo enviar assinatura digital para mk-auth, 
 
 Resumo
@@ -15,7 +14,7 @@ tem como objetivo salvar assinatura digital no mk-auth para assinar contrato.
 2. Vá para o diretório /etc/apparmor.d e abra o arquivo usr.sbin.php-fpm7.3.
 
 3. Adicione estas linha no arquivo:
-
+```
 Addons - Permitir apenas leitura e execução
  /opt/mk-auth/admin/addons/** rix,
 
@@ -56,7 +55,7 @@ Addons - Permitir apenas leitura e execução
  /opt/mk-auth/admin/addons/as_digital/uploads/signatures rwk,
  /opt/mk-auth/admin/addons/as_digital/uploads/signatures** rwk,
 
-
+```
 
 
 
