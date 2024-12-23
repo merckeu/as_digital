@@ -1,8 +1,8 @@
 
-# as_digital
+ as_digital
 Esse Addon tem como Objetivo enviar assinatura digital para mk-auth, 
 
-# Resumo
+Resumo
 
 tem como objetivo salvar assinatura digital no mk-auth para assinar contrato.
 
@@ -16,7 +16,7 @@ tem como objetivo salvar assinatura digital no mk-auth para assinar contrato.
 
 3. Adicione estas linha no arquivo:
 
- #Addons - Permitir apenas leitura e execução
+Addons - Permitir apenas leitura e execução
  /opt/mk-auth/admin/addons/** rix,
 
  # Comandos estritamente necessários para execução
