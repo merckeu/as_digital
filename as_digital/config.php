@@ -2,7 +2,7 @@
 <?php
 // Configurações gerais do addon
 return [
-    'addon_name' => 'Digital Signature Addon',
+    'addon_name' => 'Addon de Assinatura Digital',
     'version' => '1.2.0',
     'author' => 'Merckeu M Moretti',
     'description' => 'Addon para assinatura digital e manuscrita no MK-Auth.',
