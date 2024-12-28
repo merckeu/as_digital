@@ -1,161 +1,119 @@
 <?php
-// Inclui o arquivo de configuração e funções
-$config = include 'config.php';
-include 'signature.php';
-
-// Mensagens para o usuário
-$message = '';
-$nome_cliente = '';
-$cliente_id = '';
-$resultados = [];
-
-// Configurações de conexão com o banco de dados
-$servername = "localhost";
-$username = "root";
+// ConexÃ£o com o banco de dados
+$host = "localhost";
+$user = "root";
 $password = "vertrigo";
 $dbname = "mkradius";
 
-// Criar a conexão
-$conn = new mysqli($servername, $username, $password, $dbname);
+$conn = new mysqli($host, $user, $password, $dbname);
 
-// Verificar a conexão
 if ($conn->connect_error) {
-    die("Conexão falhou: " . $conn->connect_error);
+    die("Falha na conexÃ£o com o banco de dados: " . $conn->connect_error);
 }
 
-// Processar o formulário de envio da assinatura
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['signature']) && isset($_POST['cliente_id'])) {
-    try {
-        // Caminho para o diretório onde a assinatura será salva
-        $signaturePath = saveSignature($_POST['signature'], $config['signature_dir']);
-        
-        // Vincular a assinatura ao cliente selecionado
-        $cliente_id = (int) $_POST['cliente_id'];
-        $sql = "UPDATE sis_cliente SET assinatura = ? WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("si", $signaturePath, $cliente_id);
-        
-        if ($stmt->execute()) {
-            $message = "Assinatura salva e vinculada ao cliente com sucesso.";
+// Verifica se o formulÃ¡rio foi enviado
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nome_cliente = $_POST['nome_cliente'] ?? '';
+    $assinatura = $_POST['assinatura'] ?? '';
+
+    // Validar se o nome do cliente e a assinatura estÃ£o presentes
+    if (!empty($nome_cliente) && !empty($assinatura)) {
+        $nome_imagem = uniqid() . '.png';
+        $caminho_imagem = "/opt/mk-auth/admin/addons/as_digital/uploads/signatures/" . $nome_imagem;
+
+        // Decodifica a imagem da assinatura enviada
+        $dados_imagem = explode(',', $assinatura);
+        if (isset($dados_imagem[1])) {
+            $dados_imagem = base64_decode($dados_imagem[1]);
+            file_put_contents($caminho_imagem, $dados_imagem);
+
+            // Insere no banco de dados
+            $stmt = $conn->prepare("INSERT INTO ass_cliente (nome, assinatura) VALUES (?, ?)");
+            $stmt->bind_param("ss", $nome_cliente, $nome_imagem);
+
+            if ($stmt->execute()) {
+                echo "Assinatura salva com sucesso!";
+            } else {
+                echo "Erro ao salvar a assinatura: " . $stmt->error;
+            }
+
+            $stmt->close();
         } else {
-            $message = "Erro ao vincular assinatura ao cliente.";
-        }
-        $stmt->close();
-    } catch (Exception $e) {
-        $message = "Erro: " . $e->getMessage();
-    }
-}
-
-// Processar o formulário de pesquisa de cliente
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['nome_cliente'])) {
-    $nome_cliente = $_POST['nome_cliente'];
-    
-    // Consulta ao banco de dados
-    $sql = "SELECT id, nome FROM sis_cliente WHERE nome LIKE ?";
-    $stmt = $conn->prepare($sql);
-    $search_term = "%" . $nome_cliente . "%"; // Adiciona o caractere de wildcard para pesquisa parcial
-    $stmt->bind_param("s", $search_term);
-    
-    // Executa a consulta
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    // Armazenar os resultados
-    if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $resultados[] = $row;
+            echo "Dados da assinatura invÃ¡lidos.";
         }
     } else {
-        $message = "Nenhum cliente encontrado.";
+        echo "Por favor, preencha todos os campos.";
     }
-
-    $stmt->close();
 }
+
+// Consulta para buscar clientes existentes
+$result = $conn->query("SELECT id, nome FROM sis_cliente");
+$clientes = $result->fetch_all(MYSQLI_ASSOC);
 $conn->close();
 ?>
+
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $config['addon_name']; ?></title>
-    <link rel="stylesheet" href="/path/to/mk-auth/styles.css">
+    <title>Assinatura Digital</title>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1><?php echo $config['addon_name']; ?></h1>
-        <p><?php echo $config['description']; ?></p>
+    <h1>Assinatura Digital</h1>
 
-        <?php if (!empty($message)): ?>
-            <div class="alert"><?php echo $message; ?></div>
-        <?php endif; ?>
+    <form method="POST">
+        <label for="nome_cliente">Pesquisar Cliente:</label>
+        <input type="text" id="pesquisa_cliente" oninput="filtrarClientes()" placeholder="Digite para pesquisar...">
+        <br><br>
+        <label for="nome_cliente">Selecione o Cliente:</label>
+        <select name="nome_cliente" id="nome_cliente" required>
+            <option value="">-- Selecione um Cliente --</option>
+            <?php foreach ($clientes as $cliente): ?>
+                <option value="<?php echo htmlspecialchars($cliente['nome']); ?>">
+                    <?php echo htmlspecialchars($cliente['nome']); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
 
-        <!-- Formulário de pesquisa de cliente -->
-        <h2>Pesquisa de Cliente</h2>
-        <form method="POST">
-            <label for="nome_cliente">Nome do Cliente:</label>
-            <input type="text" id="nome_cliente" name="nome_cliente" value="<?php echo htmlspecialchars($nome_cliente); ?>" required>
-            <button type="submit">Pesquisar</button>
-        </form>
+        <br><br>
+        <label for="assinatura">Assinatura:</label>
+        <div style="border: 1px solid #000; width: 400px; height: 200px;">
+            <canvas id="signature-pad" width="400" height="200"></canvas>
+        </div>
+        <button type="button" onclick="limparAssinatura()">Limpar</button>
+        <input type="hidden" name="assinatura" id="assinatura">
 
-        <?php if (!empty($resultados)): ?>
-            <h2>Selecione o Cliente:</h2>
-            <form method="POST" id="formSignature">
-                <label for="cliente_id">Cliente:</label>
-                <select name="cliente_id" id="cliente_id" required>
-                    <option value="" disabled selected>Selecione um cliente</option>
-                    <?php foreach ($resultados as $cliente): ?>
-                        <option value="<?php echo $cliente['id']; ?>">
-                            <?php echo htmlspecialchars($cliente['nome']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-
-                <!-- Área para assinatura manuscrita -->
-                <h2>Assine o Documento</h2>
-                <div style="border: 1px solid #ccc; width: 100%; height: 300px;">
-                    <canvas id="signatureCanvas" style="width: 100%; height: 100%;"></canvas>
-                </div>
-                <button type="button" id="clearButton" style="margin-top: 10px;">Limpar</button>
-
-                <!-- Input oculto para a assinatura -->
-                <input type="hidden" name="signature" id="signatureData">
-                <button type="submit" style="margin-top: 10px;">Enviar Assinatura</button>
-            </form>
-        <?php endif; ?>
-    </div>
+        <br><br>
+        <button type="submit" onclick="salvarAssinatura()">Salvar</button>
+    </form>
 
     <script>
-        // Configurar Signature Pad
-        const canvas = document.getElementById('signatureCanvas');
-        const signaturePad = new SignaturePad(canvas);
+        const signaturePad = new SignaturePad(document.getElementById('signature-pad'));
 
-        // Ajustar tamanho do canvas
-        function resizeCanvas() {
-            const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            canvas.width = canvas.offsetWidth * ratio;
-            canvas.height = canvas.offsetHeight * ratio;
-            canvas.getContext("2d").scale(ratio, ratio);
+        function limparAssinatura() {
             signaturePad.clear();
         }
-        window.addEventListener("resize", resizeCanvas);
-        resizeCanvas();
 
-        // Botão para limpar assinatura
-        document.getElementById('clearButton').addEventListener('click', function () {
-            signaturePad.clear();
-        });
-
-        // Salvar a assinatura no campo oculto antes de enviar
-        document.getElementById('formSignature').addEventListener('submit', function (e) {
-            if (signaturePad.isEmpty()) {
-                alert("Por favor, insira sua assinatura antes de enviar.");
-                e.preventDefault();
+        function salvarAssinatura() {
+            if (!signaturePad.isEmpty()) {
+                document.getElementById('assinatura').value = signaturePad.toDataURL();
             } else {
-                document.getElementById('signatureData').value = signaturePad.toDataURL();
+                alert('Por favor, insira a assinatura antes de salvar.');
             }
-        });
+        }
+
+        function filtrarClientes() {
+            const pesquisa = document.getElementById('pesquisa_cliente').value.toLowerCase();
+            const select = document.getElementById('nome_cliente');
+            const options = select.options;
+
+            for (let i = 1; i < options.length; i++) {
+                const texto = options[i].text.toLowerCase();
+                options[i].style.display = texto.includes(pesquisa) ? '' : 'none';
+            }
+        }
     </script>
 </body>
 </html>
