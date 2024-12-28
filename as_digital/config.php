@@ -1,5 +1,6 @@
+
 <?php
-// Configurações gerais do addon
+// ConfiguraÃ§Ãµes gerais do addon
 return [
     'addon_name' => 'Digital Signature Addon',
     'version' => '1.0.0',
@@ -9,10 +10,10 @@ return [
 ];
 return [
     'db_host' => 'localhost',         // Servidor do banco de dados
-    'db_user' => 'root',       // Nome de usuário do banco
-    'db_password' => 'vertrigo',     // Senha do usuário
+    'db_user' => 'root',       // Nome de usuÃ¡rio do banco
+    'db_password' => 'vertrigo',     // Senha do usuÃ¡rio
     'db_name' => 'mkradius',     // Nome do banco de dados
-    'signature_dir' => 'assinaturas/',// Pasta para salvar as assinaturas
-    'addon_name' => 'Gestão de Assinaturas', // Nome do módulo
-    'description' => 'Sistema para gestão de assinaturas digitais.'
+    'signature_dir' => 'uploads/signatures/',// Pasta para salvar as assinaturas
+    'addon_name' => 'GestÃ£o de Assinaturas', // Nome do mÃ³dulo
+    'description' => 'Sistema para gestÃ£o de assinaturas digitais.'
 ];
